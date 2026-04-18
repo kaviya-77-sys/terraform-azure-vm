@@ -44,10 +44,3 @@ resource "azurerm_key_vault" "kv" {
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   sku_name                    = "standard"
 }
-
-# Store password in Key Vault
-resource "azurerm_key_vault_secret" "db_password" {
-  name         = "sql-password"
-  value        = var.admin_password
-  key_vault_id = azurerm_key_vault.kv.id
-}
