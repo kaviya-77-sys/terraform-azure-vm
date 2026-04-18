@@ -7,13 +7,13 @@ data "azurerm_client_config" "current" {}
 
 # Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "db-demo-tf"
+  name     = "db-demo-tf-001"
   location = "Central India"
 }
 
 # SQL Server
 resource "azurerm_mssql_server" "sqlserver" {
-  name                         = "kaviya-sql-server-tf12345"
+  name                         = "kaviya-sql-server-tf67890"
   resource_group_name          = azurerm_resource_group.rg.name
   location                     = azurerm_resource_group.rg.location
   version                      = "12.0"
@@ -38,7 +38,7 @@ resource "azurerm_mssql_firewall_rule" "rule" {
 
 # Key Vault
 resource "azurerm_key_vault" "kv" {
-  name                        = "kaviya-kv-tf12345"
+  name                        = "kaviya-kv-tf67890"
   location                    = azurerm_resource_group.rg.location
   resource_group_name         = azurerm_resource_group.rg.name
   tenant_id                   = data.azurerm_client_config.current.tenant_id
