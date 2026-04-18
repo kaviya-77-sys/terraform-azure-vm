@@ -2,18 +2,21 @@ provider "azurerm" {
   features {}
 }
 
-# Get current Azure client details
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
 data "azurerm_client_config" "current" {}
 
-# Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "db-demo-tf-001"
+  name     = "db-demo-tf-${random_string.suffix.result}"
   location = "Central India"
 }
 
-# SQL Server
 resource "azurerm_mssql_server" "sqlserver" {
-  name                         = "kaviya-sql-server-tf67890"
+  name                         = "kaviya-sql-${random_string.suffix.result}"
   resource_group_name          = azurerm_resource_group.rg.name
   location                     = azurerm_resource_group.rg.location
   version                      = "12.0"
@@ -21,14 +24,12 @@ resource "azurerm_mssql_server" "sqlserver" {
   administrator_login_password = var.admin_password
 }
 
-# SQL Database
 resource "azurerm_mssql_database" "db" {
   name      = "kaviya-db-tf"
   server_id = azurerm_mssql_server.sqlserver.id
   sku_name  = "Basic"
 }
 
-# Firewall Rule (Allow Azure Services)
 resource "azurerm_mssql_firewall_rule" "rule" {
   name             = "AllowAzure"
   server_id        = azurerm_mssql_server.sqlserver.id
@@ -36,11 +37,10 @@ resource "azurerm_mssql_firewall_rule" "rule" {
   end_ip_address   = "0.0.0.0"
 }
 
-# Key Vault
 resource "azurerm_key_vault" "kv" {
-  name                        = "kaviya-kv-tf67890"
-  location                    = azurerm_resource_group.rg.location
-  resource_group_name         = azurerm_resource_group.rg.name
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  sku_name                    = "standard"
+  name                = "kaviya-kv-${random_string.suffix.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
 }
