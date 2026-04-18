@@ -51,10 +51,3 @@ resource "azurerm_key_vault_secret" "db_password" {
   value        = var.admin_password
   key_vault_id = azurerm_key_vault.kv.id
 }
-
-# Role Assignment (RBAC)
-resource "azurerm_role_assignment" "rbac" {
-  scope                = azurerm_resource_group.rg.id
-  role_definition_name = "Reader"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
