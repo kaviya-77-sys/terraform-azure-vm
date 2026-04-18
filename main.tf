@@ -2,67 +2,59 @@ provider "azurerm" {
   features {}
 }
 
+# Get current Azure client details
+data "azurerm_client_config" "current" {}
+
+# Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "kaviya-rg"
+  name     = "db-demo-tf"
   location = "Central India"
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "kaviya-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+# SQL Server
+resource "azurerm_mssql_server" "sqlserver" {
+  name                         = "kaviya-sql-server-tf12345"
+  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = azurerm_resource_group.rg.location
+  version                      = "12.0"
+  administrator_login          = "sqladmin"
+  administrator_login_password = var.admin_password
 }
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "kaviya-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+# SQL Database
+resource "azurerm_mssql_database" "db" {
+  name      = "kaviya-db-tf"
+  server_id = azurerm_mssql_server.sqlserver.id
+  sku_name  = "Basic"
 }
 
-resource "azurerm_public_ip" "pip" {
-  name                = "kaviya-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
+# Firewall Rule (Allow Azure Services)
+resource "azurerm_mssql_firewall_rule" "rule" {
+  name             = "AllowAzure"
+  server_id        = azurerm_mssql_server.sqlserver.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
 }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "kaviya-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pip.id
-  }
+# Key Vault
+resource "azurerm_key_vault" "kv" {
+  name                        = "kaviya-kv-tf12345"
+  location                    = azurerm_resource_group.rg.location
+  resource_group_name         = azurerm_resource_group.rg.name
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  sku_name                    = "standard"
 }
 
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "kaviya-vm"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = "Standard_B1ms"
-  admin_username      = "azureuser"
-  admin_password      = "Password@1234!"
-  disable_password_authentication = false
+# Store password in Key Vault
+resource "azurerm_key_vault_secret" "db_password" {
+  name         = "sql-password"
+  value        = var.admin_password
+  key_vault_id = azurerm_key_vault.kv.id
+}
 
-  network_interface_ids = [
-    azurerm_network_interface.nic.id,
-  ]
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
-    version   = "latest"
-  }
+# Role Assignment (RBAC)
+resource "azurerm_role_assignment" "rbac" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Reader"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
