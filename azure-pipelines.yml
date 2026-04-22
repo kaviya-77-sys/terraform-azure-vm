@@ -8,7 +8,7 @@ steps:
 
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'terraform-connection'
+    azureSubscription: 'azure-conn-shutdown'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
